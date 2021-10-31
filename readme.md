@@ -25,6 +25,9 @@ What makes sidenoder better than other sideloaders ?
 
 </details>
 
+## Downloading the compiled version
+Compiled binaries can be found in the [vKolerts/sidenoder repository](https://github.com/vKolerts/sidenoder/releases)
+
 ## Running the compiled version
 
 #### Run precompiled release on windows:
