@@ -1745,7 +1745,13 @@ async function getDir(folder) {
     // console.log({ fileNames });
 
     fileNames.sort((a, b) => {
-      return b.createdAt - a.createdAt;
+      if (a.name > b.name) {
+        return 1;
+      }
+      if (a.name < b.name) {
+        return -1;
+      }
+      return 0;
     });
     // console.log(fileNames)
 
