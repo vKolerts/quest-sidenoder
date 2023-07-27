@@ -2223,7 +2223,15 @@ async function getInstalledApps(obj = false) {
   }
 
 
-  global.installedApps = Object.values(appinfo);
+  global.installedApps = Object.values(appinfo).sort((a, b) => {
+    if (a.simpleName > b.simpleName) {
+      return 1
+    }
+    if (a.simpleName < b.simpleName) {
+      return -1
+    }
+    return 0
+  });
 
   return obj ? appinfo : global.installedApps;
 }
