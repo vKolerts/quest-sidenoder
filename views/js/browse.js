@@ -183,7 +183,7 @@ function loadDir(list) {
       continue;
     }
 
-    const createdAt = item.createdAt.getTime();
+    const modified = item.info.mtime.getTime();
     const fullPath = item.filePath
       .replace('\\', '/')
       .replace('', ':')
@@ -197,13 +197,13 @@ function loadDir(list) {
       let rowItem = '';
       if (item.name.endsWith('.apk')) {
         rowItem = `<td class="browse-file" onclick="getDir('${fullPath}')"><b><i class="fa fa-android"></i> &nbsp; ${name}</b></td>`;
-        rowItem += `<td>Updated: ${item.createdAt.toLocaleString()}</td><td>${size} Mb</td>`;
-        rowItem = `<tr class="listitem" data-name="${item.name.toUpperCase()}" data-createdat="${createdAt}">${rowItem}</tr>`;
+        rowItem += `<td>Updated: ${item.info.mtime.toLocaleString()}</td><td>${size} Mb</td>`;
+        rowItem = `<tr class="listitem" data-name="${item.name.toUpperCase()}" data-updatedat="${modified}" data-isfile="true">${rowItem}</tr>`;
       }
       else {
         rowItem = `<td><i class="fa fa-file-o"></i> &nbsp; ${name}</td>`;
-        rowItem += `<td>Updated: ${item.createdAt.toLocaleString()}</td><td>${size} Mb</td>`;
-        rowItem = `<tr class="listitem text-secondary" data-name="${item.name.toUpperCase()}" data-createdat="${createdAt}">${rowItem}</tr>`;
+        rowItem += `<td>Updated: ${item.info.mtime.toLocaleString()}</td><td>${size} Mb</td>`;
+        rowItem = `<tr class="listitem text-secondary" data-name="${item.name.toUpperCase()}" data-updatedat="${modified}" data-isfile="true">${rowItem}</tr>`;
       }
 
       rows+= rowItem;
@@ -212,10 +212,10 @@ function loadDir(list) {
 
     if (!item.imagePath) {
       rowItem = `<td class='browse-folder' onclick="getDir('${fullPath}')"><i class="fa fa-folder-o"></i> &nbsp; ${name}</td>`;
-      rowItem += `<td>Updated: ${item.createdAt.toLocaleString()}</td>`;
+      rowItem += `<td>Updated: ${item.info.mtime.toLocaleString()}</td>`;
       rowItem += `<td><a onclick="getDirSize(this, '${fullPath}')"><i class="fa fa-calculator" ></i> get size</a></td>`;
 
-      rows+= `<tr class="listitem" data-name="${item.name.toUpperCase()}" data-createdat="${createdAt}">${rowItem}</tr>`;
+      rows+= `<tr class="listitem" data-name="${item.name.toUpperCase()}" data-updatedat="${modified}">${rowItem}</tr>`;
       continue;
     }
 
@@ -261,7 +261,7 @@ function loadDir(list) {
       <i class="fa fa-calculator" title="Calculate folder size"></i> get size
     </a>`;
 
-    const card = `<div class="col mb-3 listitem" style="min-width: 250px;padding-right:5px;max-width: 450px;" data-name="${item.name.toUpperCase()}" data-createdat="${createdAt}">
+    const card = `<div class="col mb-3 listitem" style="min-width: 250px;padding-right:5px;max-width: 450px;" data-name="${item.name.toUpperCase()}" data-updatedat="${modified}">
       <div class="card bg-primary text-center bg-dark">
 
       ${newribbon}
@@ -274,7 +274,7 @@ function loadDir(list) {
         versionCode: ${item.versionCode || 'Unknown'} ${item.versionName && `(v.${item.versionName})` || ''}
         <br/>
         ${item.packageName}<br/>
-        Updated: ${item.createdAt.toLocaleString()} &nbsp;
+        Updated: ${item.info.mtime.toLocaleString()} &nbsp;
         ${size}
       </small></div>
 
@@ -297,4 +297,38 @@ function loadDir(list) {
     id('browseCardBody').innerHTML += cards;
     scrollByHistory();
   }, 100);
+}
+
+function sortFiles(key, asc) {
+  const suffix = asc ? '' : '-desc';
+
+  sortElements($id('browseCardBody'), key, asc);
+  sortFileElements($id('listTable'), key, asc);
+  $id('searchdropdownmenu').hide();
+
+  ipcRenderer.send('change_config', { key: "sortFiles", val: key + suffix });
+}
+
+function sortFileElements(el, key, asc) {
+  const sortByName = key.startsWith("name");
+
+  el.html(el.find('.listitem').sort((a, b) => {
+    const valA = sortByName ? a.dataset.name.toLowerCase() : a.dataset.updatedat;
+    const valB = sortByName ? b.dataset.name.toLowerCase() : b.dataset.updatedat;
+    if (valA < valB) {
+      return asc ? -1 : 1;
+    }
+    if (valA > valB) {
+      return asc ? 1 : -1;
+    }
+    return 0;
+  }).sort((a, b) => {
+    if (a.dataset.isfile === "true" && b.dataset.isfile !== "true") {
+      return 1;
+    }
+    if (a.dataset.isfile !== "true" && b.dataset.isfile === "true") {
+      return -1;
+    }
+    return 0;
+  }));
 }

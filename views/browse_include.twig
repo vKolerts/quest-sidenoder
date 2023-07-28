@@ -21,21 +21,21 @@
       <a class="btn btn-md btn-primary" onclick="refreshDir()" title="(hotkey: ctrl+r)"> <i class="fa fa-refresh"></i> Refresh</a>
       <a class="btn btn-md btn-primary" onclick="openSearch()" title="(hotkey: ctrl+f)"> <i class="fa fa-search"></i> Search</a>
       <button class="btn btn-md btn-primary dropdown-toggle" type="button" onclick="$id('searchdropdownmenu').toggle()">
-        <i class="fa fa-sort" ></i> Sort
+        <i class="fa fa-sort" ></i> Sort By
       </button>
       <div id="searchdropdownmenu" class="dropdown-menu" style="right: 0;left: auto; top: auto;">
-        <a class="dropdown-item" onclick="sortItems('createdat', 0)">
-          <i class="fa fa-sort-amount-desc"></i>
-          Sort by update decending</a>
-        <a class="dropdown-item" onclick="sortItems('createdat', 1)">
-          <i class="fa fa-sort-amount-asc"></i>
-          Sort by update</a>
-        <a class="dropdown-item" onclick="sortItems('name', 0)">
-          <i class="fa fa-sort-alpha-desc"></i>
-            Sort by name decending</a>
-        <a class="dropdown-item" onclick="sortItems('name', 1)">
+        <a class="dropdown-item" onclick="sortFiles('name', 1)">
           <i class="fa fa-sort-alpha-asc"></i>
-          Sort by name</a>
+          Name</a>
+        <a class="dropdown-item" onclick="sortFiles('name', 0)">
+          <i class="fa fa-sort-alpha-desc"></i>
+          Name (decending)</a>
+        <a class="dropdown-item" onclick="sortFiles('modified', 1)">
+          <i class="fa fa-sort-amount-asc"></i>
+          Last modified</a>
+        <a class="dropdown-item" onclick="sortFiles('modified', 0)">
+          <i class="fa fa-sort-amount-desc"></i>
+          Last modified (decending)</a>
       </div>
     </h4>
   </div>

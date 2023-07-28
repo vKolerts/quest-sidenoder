@@ -1744,10 +1744,28 @@ async function getDir(folder) {
     }));
     // console.log({ fileNames });
 
+    const sortFileMode = global.currentConfiguration.sortFiles || "name";
+    const sortByName = sortFileMode.startsWith("name");
+    const asc = !sortFileMode.endsWith("-desc");
     fileNames.sort((a, b) => {
-      return b.createdAt - a.createdAt;
+      const valA = sortByName ? a.simpleName.toLowerCase() : a.info.mtimeMs;
+      const valB = sortByName ? b.simpleName.toLowerCase() : b.info.mtimeMs;
+      if (valA < valB) {
+        return asc ? -1 : 1;
+      }
+      if (valA > valB) {
+        return asc ? 1 : -1;
+      }
+      return 0;
+    }).sort((a, b) => {
+      if (a.isFile && !b.isFile) {
+        return 1;
+      }
+      if (!a.isFile && b.isFile) {
+        return -1;
+      }
+      return 0;
     });
-    // console.log(fileNames)
 
     if (
       folder == oculusGamesDir
