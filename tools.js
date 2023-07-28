@@ -2234,8 +2234,20 @@ async function getInstalledApps(obj = false) {
     appinfo[packageName] = info;
   }
 
-
-  global.installedApps = Object.values(appinfo);
+  const sortAppMode = global.currentConfiguration.sortApps || "simplename";
+  const sortByName = sortAppMode.startsWith("simplename");
+  const asc = !sortAppMode.endsWith("-desc");
+  global.installedApps = Object.values(appinfo).sort((a, b) => {
+    const valA = (sortByName ? a.simpleName : a.packageName).toLowerCase();
+    const valB = (sortByName ? b.simpleName : b.packageName).toLowerCase();
+    if (valA < valB) {
+      return asc ? -1 : 1;
+    }
+    if (valA > valB) {
+      return asc ? 1 : -1;
+    }
+    return 0
+  });
 
   return obj ? appinfo : global.installedApps;
 }
