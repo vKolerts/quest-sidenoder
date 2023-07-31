@@ -1646,13 +1646,27 @@ async function getDir(folder) {
         size = gameMeta.size;
         // imagePath = gameMeta.imagePath;
 
-        if (gameMeta.releaseName.includes('(')) {
-          note = gameMeta.releaseName.match(/\((.*?)\)/);
-          note = note[0].replace(', only autoinstalls with Rookie', '');
+        let regex = /\((.*?)\)/;
+        if (regex.test(gameMeta.releaseName)) {
+          const match = gameMeta.releaseName.match(regex)[0];
+          note += match.replace(', only autoinstalls with Rookie', '');
         }
       }
 
-      let regex = /^([\w -.,!?&+™®'"]*) v\d+\+/;
+      // Include local notes. This allows users to add notes in brackets to
+      // their filenames to override the original note. These notes are rendered
+      // in the game's browse card.
+      let regex = /\((.*?)\)/;
+      if (regex.test(fileName)) {
+        const match = fileName.match(/\((.*?)\)/)[0];
+        if (match !== note) {
+          // This note differs from the original so it has been overriden in the
+          // filename, so we replace it.
+          note = match.replace(', only autoinstalls with Rookie', '');
+        }
+      }
+
+      regex = /^([\w -.,!?&+™®'"]+) v\d+\+/;
       if (gameListName && !packageName && regex.test(fileName)) {
         simpleName = fileName.match(regex)[1];
         packageName = KMETAS2[escString(simpleName)];
