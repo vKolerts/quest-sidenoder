@@ -264,9 +264,11 @@ function loadDir(list) {
     const card = `<div class="col mb-3 listitem" style="min-width: 250px;padding-right:5px;max-width: 450px;" data-name="${item.name.toUpperCase()}" data-createdat="${createdAt}">
       <div class="card bg-primary text-center bg-dark">
 
-      ${newribbon}
       <div><small><b>${item.simpleName} ${item.note || ''}</b></small></div>
-      <img src="${item.imagePath}" class="bg-secondary" style="height: 140px">
+      <div class="ribbon-img-container">
+        ${newribbon}
+        <img src="${item.imagePath}" class="bg-secondary" style="width: 100%">
+      </div>
       <div class="pb-2 pt-2">
           ${selectBtn}
       </div>
