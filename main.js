@@ -177,7 +177,7 @@ ipcMain.on('filedrop', async (event, path) => {
 
 
 ipcMain.on('reset_cache', async (event, arg) => {
-  tools.resetCache(arg);
+  await tools.resetCache(arg);
 });
 
 ipcMain.on('get_dir', async (event, arg) => {

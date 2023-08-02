@@ -1519,9 +1519,9 @@ async function mount() {
   });
 }
 
-function resetCache(folder) {
+async function resetCache(folder) {
   console.log('resetCache', folder);
-  const oculusGamesDir = path.join(global.mountFolder, global.currentConfiguration.mntGamePath).replace(/\\/g, '/');
+  const oculusGamesDir = await getOculusGamesDir();
 
   if (folder == oculusGamesDir) {
     cacheOculusGames = false;
@@ -1533,7 +1533,7 @@ function resetCache(folder) {
 
 
 async function getDir(folder) {
-  const oculusGamesDir = path.join(global.mountFolder, global.currentConfiguration.mntGamePath).replace(/\\/g, '/');
+  const oculusGamesDir = await getOculusGamesDir();
   //console.log(folder, oculusGamesDir);
   if (
     folder == oculusGamesDir
@@ -1553,14 +1553,15 @@ async function getDir(folder) {
     try {
       // throw 'test';
       for (const name of GAME_LIST_NAMES) {
-        if (!fs.existsSync(path.join(folder, name))) continue;
-        // if (!files.includes(name)) continue;
-        gameListName = name;
-        break;
+        const listPath = path.join(oculusGamesDir, name);
+        if (fs.existsSync(listPath)) {
+          gameListName = name;
+          break;
+        }
       }
 
       if (gameListName) {
-        const list = (await fsp.readFile(path.join(folder, gameListName), 'utf8')).split('\n');
+        const list = (await fsp.readFile(path.join(oculusGamesDir, gameListName), 'utf8')).split('\n');
         let listVer;
         if (!list.length) throw gameListName + ' is empty';
 
@@ -1573,24 +1574,28 @@ async function getDir(folder) {
           }
 
           if (listVer == 1) {
-            gameList[meta[1]] = {
+            const gameObj = {
               simpleName: meta[0],
               releaseName: meta[1],
               packageName: meta[3],
               versionCode: meta[4],
               versionName: meta[5],
-              imagePath: `file://${global.tmpdir}/mnt/${global.currentConfiguration.mntGamePath}/.meta/thumbnails/${meta[3]}.jpg`,
+              imagePath: `file://${oculusGamesDir}/.meta/thumbnails/${meta[3]}.jpg`,
             }
+            gameList[meta[0]] = gameObj;
+            gameList[meta[1]] = gameObj;
           }
           else if (listVer == 2) {
-            gameList[meta[1]] = {
+            const gameObj = {
               simpleName: meta[0],
               releaseName: meta[1],
               packageName: meta[2],
               versionCode: meta[3],
-              imagePath: `file://${global.tmpdir}/mnt/${global.currentConfiguration.mntGamePath}/.meta/thumbnails/${meta[2]}.jpg`,
+              imagePath: `file://${oculusGamesDir}/.meta/thumbnails/${meta[2]}.jpg`,
               size: meta[5],
             }
+            gameList[meta[0]] = gameObj;
+            gameList[meta[1]] = gameObj;
           }
 
         }
@@ -1635,7 +1640,42 @@ async function getDir(folder) {
         size = false,
         newItem = false;
 
-      const gameMeta = gameList[fileName];
+      let isGameFolder = false;
+
+      if (info.isDirectory()) {
+        const dirCont = await fsp.readdir(path.join(folder, fileName));
+
+        isGameFolder = dirCont.filter((file) => {
+          return /.*\.apk/.test(file);
+        }).length > 0;
+      }
+
+      let gameMeta = false;
+
+      if (isGameFolder) {
+        gameMeta = gameList[fileName];
+
+        if (!gameMeta) {
+          // If gameMeta is still not defined then there is no game with a
+          // matching version number. We now query gameList using the game name
+          // without the version number.
+          let regex = /^([\w -.,!?&+™®'"]+) v\d+\+/;
+          if (regex.test(fileName)) {
+            // Only do this if this is a folder containing an apk file.
+            if (info.isDirectory()) {
+              const dirCont = await fsp.readdir(path.join(folder, fileName));
+              const isGameFolder = dirCont.filter((file) => {
+                return /.*\.apk/.test(file);
+              }).length > 0;
+
+              if (isGameFolder) {
+                const match = fileName.match(regex)[1];
+                gameMeta = gameList[match];
+              }
+            }
+          }
+        }
+      }
 
       if (gameMeta) {
         simpleName = gameMeta.simpleName;
@@ -1644,7 +1684,7 @@ async function getDir(folder) {
         versionName = gameMeta.versionName;
         simpleName = gameMeta.simpleName;
         size = gameMeta.size;
-        // imagePath = gameMeta.imagePath;
+        imagePath = gameMeta.imagePath;
 
         if (gameMeta.releaseName.includes('(')) {
           note = gameMeta.releaseName.match(/\((.*?)\)/);
@@ -1683,11 +1723,13 @@ async function getDir(folder) {
 
 
       if (packageName) {
-        if (QUEST_ICONS.includes(packageName + '.jpg')) {
-          imagePath = `https://raw.githubusercontent.com/vKolerts/quest_icons/master/250/${packageName}.jpg`;
-        }
-        else if (!imagePath) {
-          imagePath = 'unknown.png';
+        if (!imagePath) {
+          if (QUEST_ICONS.includes(packageName + '.jpg')) {
+            imagePath = `https://raw.githubusercontent.com/vKolerts/quest_icons/master/250/${packageName}.jpg`;
+          }
+          else {
+            imagePath = 'unknown.png';
+          }
         }
 
         kmeta = KMETAS[packageName];
@@ -1709,7 +1751,13 @@ async function getDir(folder) {
         steamId = !!(kmeta.steam && kmeta.steam.id);
         oculusId = !!(kmeta.oculus && kmeta.oculus.id);
         sqId = !!(kmeta.sq && kmeta.sq.id);
-        simpleName = kmeta.simpleName || simpleName;
+
+        // Some games, like DrBeef ports, may have a single package name, but
+        // may contain game files from numerous games e.g. Doom, Doom3 etc.
+        // This means we should only use the kmeta simplename if we don't
+        // already have a simpleName, otherwise all the game ports using a
+        // specific game engine will all have the same name.
+        simpleName = simpleName || kmeta.simpleName;
         mp = kmeta.mp || !!kmeta.mp;
       }
       else {
@@ -2182,6 +2230,16 @@ async function sideloadFolder(arg) {
 }
 
 
+async function getOculusGamesDir() {
+  let oculusGamesDir = path.join(global.mountFolder, global.currentConfiguration.mntGamePath).replace(/\\/g, '/');
+
+  // If `mntGamePath` doesn't exist we use mount root instead.
+  if (!fs.existsSync(oculusGamesDir)) {
+    oculusGamesDir = global.mountFolder.replace(/\\/g, '/');
+  }
+
+  return oculusGamesDir;
+}
 
 async function getPackageInfo(apkPath) {
   const reader = await ApkReader.open(apkPath);
@@ -2223,7 +2281,7 @@ async function getInstalledApps(obj = false) {
 }
 
 async function getInstalledAppsWithUpdates() {
-  const remotePath = path.join(global.mountFolder, global.currentConfiguration.mntGamePath); // TODO: folder path to config
+  const remotePath = await getOculusGamesDir();
   const list = await getDir(remotePath);
   let remotePackages = {};
   let remoteList = {};
