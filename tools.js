@@ -6,7 +6,7 @@ const util = require('util');
 const path = require('path');
 const crypto = require('crypto');
 const commandExists = require('command-exists');
-
+const { dialog } = require('electron')
 const ApkReader = require('adbkit-apkreader');
 const adbkit = require('@devicefarmer/adbkit').default;
 const adb = adbkit.createClient();
@@ -739,11 +739,11 @@ async function adbPullFolder(orig, dest, sync = false) {
   return true;
 }
 
-async function adbPush(orig, dest, sync = false, rights = false) {
+async function adbPush(orig, dest, sync = false) {
   console.log('adbPush', orig, dest);
   const transfer = sync
-    ? rights ? await sync.pushFile(orig, dest, { mode: 0o777 }) : await sync.pushFile(orig, dest)
-    : rights ? await adb.getDevice(global.adbDevice).push(orig, dest, { mode: 0o777 }) : await adb.getDevice(global.adbDevice).push(orig, dest);
+      ? await sync.pushFile(orig, dest)
+      : await adb.getDevice(global.adbDevice).push(orig, dest);
   const stats = await fsp.lstat(orig);
   const size = stats.size;
 
@@ -2093,6 +2093,7 @@ async function sideloadFolder(arg) {
     console.log('doing obb rm');
     try {
       await adbShell(`rm -r "${obbFolderDest}"`);
+      await adbShell(`mkdir -p ${obbFolderDest}`, global.adbDevice, true)
       res.remove_obb = 'done';
       console.log('remove_obb done', packageName);
     }
@@ -2139,12 +2140,11 @@ async function sideloadFolder(arg) {
 
           res.download_obb = (+res.download_obb.split('/')[0] + 1) + '/' + obbFiles.length;
           win.webContents.send('sideload_process', res);
-          await adbShell(`push "${obbtmp}" "${destFile}"`);
-          //await adbPush(obbtmp, `${destFile}`, false, true);
+          await adbPush(obbtmp, `${destFile}`, false);
         }
         else {
-          await adbShell(`push "${obb}" "${destFile}"`);
-          //await adbPush(obb, `${destFile}`, false, true);
+          await adbShell(`mkdir -p ${obbFolderDest}`, global.adbDevice, true)
+          await adbPush(obb, `${destFile}`, false);
         }
 
         res.push_obb = (+res.push_obb.split('/')[0] + 1) + '/' + obbFiles.length;
@@ -2153,7 +2153,7 @@ async function sideloadFolder(arg) {
 
       if (fromremote) {
         //TODO: check settings
-        await fsp.rmdir(tmpFolder, { recursive: true });
+        await fsp.rm(tmpFolder, { recursive: true });
       }
     }
     catch (e) {
