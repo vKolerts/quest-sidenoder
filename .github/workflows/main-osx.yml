@@ -30,7 +30,7 @@ jobs:
       - name: run makeshit
         run: |
           npm install
-          npm run make all
+          npm run dist-mac
 
           mkdir -p /tmp/builds
 

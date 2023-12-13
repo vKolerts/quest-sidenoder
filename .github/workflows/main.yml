@@ -32,7 +32,7 @@ jobs:
         run: |
 
           npm install
-          npm run make all
+          npm run dist
 
           mkdir -p /tmp/builds
           cd /home/runner/work/quest-sidenoder/quest-sidenoder/out/make/deb/x64/
