@@ -27,6 +27,7 @@
     "dist": "electron-builder -mwl",
     "dist-win": "electron-builder -w",
     "dist-mac": "electron-builder -m",
+    "dist-linux": "electron-builder -l",
     "postdist": "npm run pack-win && npm run pack-mac",
     "postinstall": "electron-builder install-app-deps",
     "pack-win": "cd out/win-unpacked && cp ../windows-install.bat ./ && 7za a sidenoder-$npm_package_version-win.zip  ./* && mv sidenoder-$npm_package_version-win.zip ../",
@@ -46,13 +47,28 @@
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Utility"
     }
