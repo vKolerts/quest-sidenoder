@@ -1,8 +1,3 @@
-<!-- [![Donate PayPal](https://img.shields.io/badge/Donate-PayPal-blue.svg)](https://paypal.me/1xyst) -->
-[![Donate YooMoney](https://img.shields.io/badge/Donate-YooMoney-purple.svg)](https://yoomoney.ru/to/410011725792647)
-[![Donate eth:0xc3F7cA87e558C423A546Ed3B6B037424454c0000](https://img.shields.io/badge/Donate-ETH-white.svg)](donate.md)
-<!---[![Donate Other Crypto](https://img.shields.io/badge/Donate-Crypto-red.svg)](https://nowpayments.io/donation?api_key=MAKXTDS-MMK4BZQ-J5F0TBA-6QCGGFX)-->
-
 
 **SideNoder** - A **cross platform sideloader** for Quest(1&2&3) standalone vr headset.
 

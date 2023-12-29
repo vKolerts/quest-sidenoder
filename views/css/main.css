@@ -81,14 +81,17 @@ pre {
     background-color: rgba(255,255,255,0.25);
 }
 
+.ribbon-img-container {
+  position: relative;
+}
 
 .ribbon-wrapper {
   width: 85px;
   height: 88px;
   overflow: hidden;
   position: absolute;
-  top: -3px;
-  right: -3px;
+  top: 0px;
+  right: 0px;
 }
 
 .ribbon {

@@ -76,7 +76,7 @@
     // if (['steam', 'oculus'].includes(data.res)) {
       id('appinfoEventsBtn').onclick = () => {
         $id('processingModal').modal('show');
-        ipcRenderer.send('app_events_info', {res: data.res, package: data.package});
+        ipcRenderer.send('app_events_info', {res: data.res, pkg: data.pkg});
       }
 
       $id('appinfoEventsBtn').show();
