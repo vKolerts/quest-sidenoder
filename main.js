@@ -65,7 +65,6 @@ ipcMain.on('get_installed_with_updates', async (event, arg) => {
   console.log('get_installed_with_updates', apps.length);
 
   event.reply('get_installed_with_updates', { success: true, apps });
-  return;
 });
 
 ipcMain.on('get_device_info', async (event, arg) => {
@@ -77,7 +76,6 @@ async function getDeviceInfo(event) {
   const res = await tools.getDeviceInfo();
 
   event.reply('get_device_info', res);
-  return;
 }
 
 ipcMain.on('connect_wireless', async (event, arg) => {
@@ -177,7 +175,7 @@ ipcMain.on('filedrop', async (event, path) => {
 
 
 ipcMain.on('reset_cache', async (event, arg) => {
-  tools.resetCache(arg);
+  await tools.resetCache(arg);
 });
 
 ipcMain.on('get_dir', async (event, arg) => {
@@ -387,7 +385,7 @@ ipcMain.on('start_activity', async (event, arg) => {
 });
 ipcMain.on('start_app', async (event, arg) => {
   console.log('start_app received', arg);
-  const activity = await tools.getLaunchActiviy(arg);
+  const activity = await tools.getLaunchActivity(arg);
   const resp = await tools.startActivity(activity);
   event.reply('start_app', { success: !!resp });
   return;
@@ -407,9 +405,9 @@ ipcMain.on('change_config', async (event, { key, val }) => {
   return;
 });
 
-ipcMain.on('app_config_set', async (event, { package, key, val }) => {
-  console.log('change_config received', { package, key, val });
-  const res = await tools.changeAppConfig(package, key, val);
+ipcMain.on('app_config_set', async (event, { pkg, key, val }) => {
+  console.log('change_config received', { pkg, key, val });
+  const res = await tools.changeAppConfig(pkg, key, val);
   event.reply('app_config_set', res);
   return;
 });

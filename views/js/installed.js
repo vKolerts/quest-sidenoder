@@ -3,7 +3,7 @@ console.log('ONLOAD INSTALLED');
 ipcRenderer.on('get_installed', (event, arg) => {
   console.log('get_installed msg came ! ', arg.success);
   if (arg.success) {
-    drawInstalledApps(arg.apps);
+    drawInstalledApps(arg.apps, true);
     $id('updateBadge').show();
   }
 
@@ -55,12 +55,19 @@ function appTools(packageName) {
   });
 }
 
-function drawInstalledApps(apps) {
+function drawInstalledApps(apps, updates = false) {
   console.log('drawInstalledApps', apps.length);
+
+  if (updates && apps.length === 0) {
+    const row = `<tr><td class="text-center" style="width: 250px;vertical-align:middle;"><div class="alert alert-info mb-0"><i class="fa fa-info-circle"></i> <b>There are no updates available</b></div></td></tr>`;
+    id("intalledTable").innerHTML = row;
+    return;
+  }
+
   let rows = '';
   for (const app of apps) {
     // console.log('list app', app);
-    row = `<tr><td class="text-center" style="width: 250px;vertical-align:middle;"><img style="max-height:80px" src="${app.imagePath}"/></td>
+    let row = `<tr data-simplename="${app.simpleName}" data-packagename="${app.packageName}"><td class="text-center" style="width: 250px;vertical-align:middle;"><img style="max-height:80px" src="${app.imagePath}"/></td>
       <td style="vertical-align:middle;font-weight: bolder; font-size: large">${app.simpleName}
       <br/><small>${app.packageName}<br/>VersionCode: ${app.versionCode}</small></td><td style="vertical-align:middle;">`;
 

@@ -1,5 +1,5 @@
 <div class="modal" id="tweaksModal" >
-  <div role="document" style="margin: 1.75rem auto; min-width:800px; max-width:48%"> <!-- class="modal-dialog"  -->
+  <div role="document" style="margin: 1.75rem auto; min-width:800px; max-width:50%"> <!-- class="modal-dialog"  -->
     <div class="modal-content">
       <div class="modal-header">
         <h5 class="modal-title" id="tweaksModalLabel">Device Tweaks</h5>
@@ -49,7 +49,7 @@
               <label for="mp_name" class="mb-0">
                 <h6 class="card-title mb-0">Global multiplayer name</h6>
                 <small class="card-text">
-                  Will not change for already installed apps
+                  Will not change for apps that are already installed
                 </small>
               </label>
               <input id="mp_name" class="adbdev form-control" value="" />
@@ -65,9 +65,16 @@
           <div class="card-body">
             <div class="alert alert-info">
               <small>
-                Reboot to bootloader.
-                <br/>Then go into device and select the "firmware update" option using the volume buttons to move the selection, and power button to select.
-                <br/>After that sideloade update.zip
+                <h6>Instructions:</h6>
+                                <ol style="margin-bottom: 0">
+                                  <li>Reboot to bootloader.</li>
+                                  <li>
+                                    Select the "firmware update" option on your device using the
+                                    volume buttons to move the selection, and power button to
+                                    select.
+                                  </li>
+                                  <li>Sideload update.zip</li>
+                                </ol>
               </small>
             </div>
             <div class="form-group mb-0">
@@ -114,8 +121,10 @@
               </label>
               <select class="adbdev custom-select" id="cres">
                 <option value="640x480">640x480</option>
-                <option value="1280x720">1280x720</option>
-                <option value="1920x1080">1920x1080</option>
+                                <option value="1024x1024">1024x1024 (Quest2)</option>
+                                <option value="1280x720">1280x720</option>
+                                <option value="1920x1080">1920x1080</option>
+                                <option value="3840x1920">3840x1920 (default - Quest3)</option>
               </select>
             </div>
             <div class="form-group mb-3">
@@ -223,8 +232,12 @@
                   </small>
                 </label>
                 <select class="adbdev custom-select" id="CPU">
-                  <option value="2">level 2</option>
-                  <option value="4">level 4</option>
+                  <option value="-1">dynamic</option>
+                                    <option value="0">level 0 (slowest)</option>
+                                    <option value="1">level 1</option>
+                                    <option value="2">level 2</option>
+                                    <option value="3">level 3</option>
+                                    <option value="4">level 4 (fastest)</option>
                 </select>
               </div>
               <div class="form-group col-6">
@@ -235,8 +248,12 @@
                   </small>
                 </label>
                 <select class="adbdev custom-select" id="GPU">
-                  <option value="2">level 2</option>
-                  <option value="4">level 4</option>
+                  <option value="-1">dynamic</option>
+                                    <option value="0">level 0 (slowest)</option>
+                                    <option value="1">level 1</option>
+                                    <option value="2">level 2</option>
+                                    <option value="3">level 3</option>
+                                    <option value="4">level 4 (fastest)</option>
                 </select>
               </div>
             </div>

@@ -1,25 +1,25 @@
 {
   "name": "sidenoder",
-  "version": "0.7.5",
+  "version": "0.9.0",
   "description": "SideNoder - oculus quest tool for sideloading, device tweaks, application managing, etc",
   "main": "main.js",
   "dependencies": {
-    "@devicefarmer/adbkit": "3.2.0",
-    "@electron/remote": "2.0.5",
+    "@devicefarmer/adbkit": "3.2.5",
+    "@electron/remote": "2.1.0",
     "adbkit-apkreader": "3.2.0",
     "command-exists": "1.2.9",
-    "compare-versions": "3.6.0",
+    "compare-versions": "6.1.0",
     "electron-find": "1.0.7",
     "electron-twig": "1.1.1",
-    "fix-path": "3.0.0",
-    "jquery": "3.6.0",
-    "node-fetch": "2.6.7",
-    "socks-proxy-agent": "6.2.0-beta.0",
+    "fix-path": "4.0.0",
+    "jquery": "3.7.1",
+    "node-fetch": "3.3.2",
+    "socks-proxy-agent": "8.0.2",
     "web-auto-extractor": "1.0.17"
   },
   "devDependencies": {
-    "electron": "17.1.1",
-    "electron-builder": "22.9.1"
+    "electron": "28.0.0",
+    "electron-builder": "24.9.1"
   },
   "scripts": {
     "start": "electron ./ --dev",
@@ -27,6 +27,7 @@
     "dist": "electron-builder -mwl",
     "dist-win": "electron-builder -w",
     "dist-mac": "electron-builder -m",
+    "dist-linux": "electron-builder -l",
     "postdist": "npm run pack-win && npm run pack-mac",
     "postinstall": "electron-builder install-app-deps",
     "pack-win": "cd out/win-unpacked && cp ../windows-install.bat ./ && 7za a sidenoder-$npm_package_version-win.zip  ./* && mv sidenoder-$npm_package_version-win.zip ../",
@@ -46,13 +47,28 @@
     },
     "win": {
       "target": [
-        "nsis"
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
       ]
     },
     "linux": {
       "target": [
-        "AppImage",
-        "deb"
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
       ],
       "category": "Utility"
     }

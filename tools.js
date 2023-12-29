@@ -6,25 +6,24 @@ const util = require('util');
 const path = require('path');
 const crypto = require('crypto');
 const commandExists = require('command-exists');
-
+const { dialog } = require('electron')
 const ApkReader = require('adbkit-apkreader');
 const adbkit = require('@devicefarmer/adbkit').default;
 const adb = adbkit.createClient();
-const fetch = require('node-fetch');
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 const WAE = require('web-auto-extractor').default
 // const HttpProxyAgent = require('https-proxy-agent'); // TODO add https proxy support
 const { SocksProxyAgent } = require('socks-proxy-agent');
 const url = require('url');
 // const ApkReader = require('node-apk-parser');
-
-require('fix-path')();
+const fixPath = (...args) => import('fix-path').then(({default: fixPath}) => fixPath(...args));
 // adb.kill();
 
 const pkg = require('./package.json');
 const _sec = 1000;
 const _min = 60 * _sec;
 
-CHECK_META_PERIOD = 2 * _min;
+let CHECK_META_PERIOD = 2 * _min;
 const l = 32;
 const configLocationOld = path.join(global.homedir, 'sidenoder-config.json');
 const configLocation = path.join(global.sidenoderHome, 'config.json');
@@ -87,7 +86,7 @@ module.exports =
   rebootRecovery,
   rebootBootloader,
   sideloadFile,
-  getLaunchActiviy,
+  getLaunchActivity,
   getActivities,
   startActivity,
   devOpenUrl,
@@ -194,17 +193,28 @@ async function deviceTweaksGet(arg) {
     // gSSO: '1440x1584',
   };
 
-  if (arg.key == 'mp_name') res.mp_name = (await adbShell('settings get global username'));
-  if (arg.key == 'guardian_pause') res.guardian_pause = (await adbShell('getprop debug.oculus.guardian_pause'));
-  if (arg.key == 'frc') res.frc = (await adbShell('getprop debug.oculus.fullRateCapture'));
-  if (arg.key == 'gRR') res.gRR = (await adbShell('getprop debug.oculus.refreshRate'));
-  if (arg.key == 'gCA') res.gCA = (await adbShell('getprop debug.oculus.forceChroma'));
-  if (arg.key == 'gFFR') res.gFFR = (await adbShell('getprop debug.oculus.foveation.level'));
-  if (arg.key == 'CPU') res.CPU = (await adbShell('getprop debug.oculus.cpuLevel'));
-  if (arg.key == 'GPU') res.GPU = (await adbShell('getprop debug.oculus.gpuLevel'));
-  if (arg.key == 'vres') res.vres = (await adbShell('getprop debug.oculus.videoResolution'));
-  if (arg.key == 'cres') res.cres = (await adbShell('getprop debug.oculus.capture.width')) + 'x' + (await adbShell('getprop debug.oculus.capture.height'));
-  if (arg.key == 'gSSO') res.gSSO = (await adbShell('getprop debug.oculus.textureWidth')) + 'x' + (await adbShell('getprop debug.oculus.textureHeight'));
+  if (arg.key === 'mp_name') res.mp_name = (await adbShell('settings get global username'));
+  if (arg.key === 'guardian_pause') res.guardian_pause = (await adbShell('getprop debug.oculus.guardian_pause'));
+  if (arg.key === 'frc') res.frc = (await adbShell('getprop debug.oculus.fullRateCapture'));
+  if (arg.key === 'gRR') res.gRR = (await adbShell('getprop debug.oculus.refreshRate'));
+  if (arg.key === 'gCA') res.gCA = (await adbShell('getprop debug.oculus.forceChroma'));
+  if (arg.key === 'gFFR') res.gFFR = (await adbShell('getprop debug.oculus.foveation.level'));
+  if (arg.key === 'CPU') res.CPU = (await adbShell('getprop debug.oculus.cpuLevel'));
+  if (arg.key === 'GPU') res.GPU = (await adbShell('getprop debug.oculus.gpuLevel'));
+  if (arg.key === 'vres') res.vres = (await adbShell('getprop debug.oculus.videoResolution'));
+  if (arg.key === 'cres') {
+    let captureDims =
+        (await adbShell("getprop debug.oculus.capture.width")) +
+        "x" +
+        (await adbShell("getprop debug.oculus.capture.height"));
+
+    // Default when not set
+    if (captureDims === "x") {
+      captureDims = "3840x1920";
+    }
+    res.cres = captureDims;
+  }
+  if (arg.key === 'gSSO') res.gSSO = (await adbShell('getprop debug.oculus.textureWidth')) + 'x' + (await adbShell('getprop debug.oculus.textureHeight'));
   //oculus.capture.bitrate
 
   return res;
@@ -291,21 +301,21 @@ async function getStorageInfo() {
   };
 }
 
-async function getLaunchActiviy(package) {
-  console.log('startApp()', package);
-  const activity = await adbShell(`dumpsys package ${package} | grep -A 1 'filter' | head -n 1 | cut -d ' ' -f 10`);
+async function getLaunchActivity(pkg) {
+  console.log('startApp()', pkg);
+  const activity = await adbShell(`dumpsys package ${pkg} | grep -A 1 'filter' | head -n 1 | cut -d ' ' -f 10`);
   return startActivity(activity);
 }
 
-async function getActivities(package, activity = false) {
-  console.log('getActivities()', package);
+async function getActivities(pkg, activity = false) {
+  console.log('getActivities()', pkg);
 
-  let activities = await adbShell(`dumpsys package | grep -Eo '^[[:space:]]+[0-9a-f]+[[:space:]]+${package}/[^[:space:]]+' | grep -oE '[^[:space:]]+$'`);
+  let activities = await adbShell(`dumpsys package | grep -Eo '^[[:space:]]+[0-9a-f]+[[:space:]]+${pkg}/[^[:space:]]+' | grep -oE '[^[:space:]]+$'`);
   if (!activities) return false;
 
   activities = activities.split('\n');
   // activities.pop();
-  console.log({ package, activities });
+  console.log({ pkg, activities });
   // TODO: check manifest.application.launcherActivities
 
   return activities;
@@ -329,8 +339,8 @@ async function devOpenUrl(url) {
   return result;
 }
 
-async function readAppCfg(package) {
-  let config = await adbShell(`cat /sdcard/Android/data/${package}/private/config.json 1>&1 2> /dev/null`);
+async function readAppCfg(pkg) {
+  let config = await adbShell(`cat /sdcard/Android/data/${pkg}/private/config.json 1>&1 2> /dev/null`);
   try {
     config = config && JSON.parse(config);
   }
@@ -342,9 +352,9 @@ async function readAppCfg(package) {
   return config;
 }
 
-async function checkAppTools(package) {
-  const backupPath = path.join(global.sidenoderHome, 'backup_data', package);
-  const availableBackup = await adbFileExists(`/sdcard/Android/data/${package}`);
+async function checkAppTools(pkg) {
+  const backupPath = path.join(global.sidenoderHome, 'backup_data', pkg);
+  const availableBackup = await adbFileExists(`/sdcard/Android/data/${pkg}`);
   let availableRestore = false;
   let availableConfig = false;
   if (await fsp.exists(backupPath)) {
@@ -357,31 +367,31 @@ async function checkAppTools(package) {
   }
 
   if (availableBackup) {
-    availableConfig = await readAppCfg(package);
+    availableConfig = await readAppCfg(pkg);
   }
 
   return {
     success: true,
-    package,
+    pkg,
     availableRestore,
     availableConfig,
   };
 }
 
-async function changeAppConfig(package, key, val) {
-  console.log('changeAppConfig()', { package, key, val });
+async function changeAppConfig(pkg, key, val) {
+  console.log('changeAppConfig()', { pkg, key, val });
   const res = {
-    package,
+    pkg,
     key,
     val,
     success: false,
   };
 
-  let config = await readAppCfg(package);
+  let config = await readAppCfg(pkg);
   try {
     config = Object.assign(config, { [key]: val });
-    adbShell(`echo '${JSON.stringify(config)}' > "/sdcard/Android/data/${package}/private/config.json"`);
-    config = await readAppCfg(package);
+    adbShell(`echo '${JSON.stringify(config)}' > "/sdcard/Android/data/${pkg}/private/config.json"`);
+    config = await readAppCfg(pkg);
     res.val = config && config[key];
     res.success = !!config;
   }
@@ -743,8 +753,8 @@ async function adbPullFolder(orig, dest, sync = false) {
 async function adbPush(orig, dest, sync = false) {
   console.log('adbPush', orig, dest);
   const transfer = sync
-    ? await sync.pushFile(orig, dest)
-    : await adb.getDevice(global.adbDevice).push(orig, dest);
+      ? await sync.pushFile(orig, dest)
+      : await adb.getDevice(global.adbDevice).push(orig, dest);
   const stats = await fsp.lstat(orig);
   const size = stats.size;
 
@@ -817,7 +827,7 @@ async function adbInstall(apk) {
   console.log('adbInstall', apk);
   const temp_path = '/data/local/tmp/install.apk';
 
-  await adbPush(apk, temp_path);
+  await adbPush(apk, temp_path, false, false);
   try {
     await adb.getDevice(global.adbDevice).installRemote(temp_path);
   }
@@ -886,11 +896,11 @@ async function trackDevices() {
 }
 
 async function appInfo(args) {
-  const { res, package } = args;
-  const app = KMETAS[package];
+  const { res, pkg } = args;
+  const app = KMETAS[pkg];
   let data = {
     res,
-    package,
+    pkg,
     id: 0,
     name: app.simpleName,
     short_description: '',
@@ -912,7 +922,7 @@ async function appInfo(args) {
       data.url = `https://store.steampowered.com/app/${data.id}/`;
 
       const resp = await fetchTimeout(`https://store.steampowered.com/api/appdetails?appids=${data.id}`, {
-        headers: { 'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3' },
+        headers: { 'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3' },
         agent: agentSteam,
       });
       const json = await resp.json();
@@ -935,7 +945,7 @@ async function appInfo(args) {
         method: 'POST',
         body: `access_token=OC|1317831034909742|&variables={"itemId":"${oculus.id}","first":1}&doc_id=5373392672732392`,
         headers: {
-          'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3',
+          'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3',
           'Content-Type': 'application/x-www-form-urlencoded',
           'Origin': 'https://www.oculus.com',
         },
@@ -1027,7 +1037,7 @@ async function appInfo(args) {
         method: 'POST',
         body: JSON.stringify({ apps_id: data.id }),
         headers: {
-          'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3',
+          'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3',
           'Content-Type': 'application/json',
           'Origin': 'https://sidequestvr.com',
           'Cookie': ' __stripe_mid=829427af-c8dd-47d1-a857-1dc73c95b947201218; cf_clearance=LkOSetFAXEs255r2rAMVK_hm_I0lawkUfJAedj1nkD0-1633288577-0-250; __stripe_sid=6e94bd6b-19a4-4c34-98d5-1dc46423dd2e2f3688',
@@ -1078,11 +1088,11 @@ async function appInfo(args) {
 }
 
 async function appInfoEvents(args) {
-  const { res, package } = args;
-  const app = KMETAS[package];
+  const { res, pkg } = args;
+  const app = KMETAS[pkg];
   let data = {
     res,
-    package,
+    pkg,
     events: [],
   };
 
@@ -1094,7 +1104,7 @@ async function appInfoEvents(args) {
       data.url = `https://store.steampowered.com/news/app/${steam.id}/`;
 
       const resp = await fetchTimeout(`http://api.steampowered.com/ISteamNews/GetNewsForApp/v0002?appid=${steam.id}`, {
-        headers: { 'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3' },
+        headers: { 'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3' },
         agent: agentSteam,
       });
       const json = await resp.json();
@@ -1137,7 +1147,7 @@ async function appInfoEvents(args) {
         method: 'POST',
         body: `access_token=OC|1317831034909742|&variables={"id":"${oculus.id}"}&doc_id=1586217024733717`,
         headers: {
-          'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3',
+          'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3',
           'Content-Type': 'application/x-www-form-urlencoded',
           'Origin': 'https://www.oculus.com',
         },
@@ -1209,7 +1219,7 @@ async function appInfoEvents(args) {
           method: 'POST',
           body: JSON.stringify({ apps_id: sq.id, is_news }),
           headers: {
-            'Accept-Language': global.locale + ',ru;q=0.8,en-US;q=0.5,en;q=0.3',
+            'Accept-Language': global.locale + ',en-US;q=0.5,en;q=0.3',
             'Content-Type': 'application/json',
             'Origin': 'https://sidequestvr.com',
             'Cookie': ' __stripe_mid=829427af-c8dd-47d1-a857-1dc73c95b947201218; cf_clearance=LkOSetFAXEs255r2rAMVK_hm_I0lawkUfJAedj1nkD0-1633288577-0-250; __stripe_sid=6e94bd6b-19a4-4c34-98d5-1dc46423dd2e2f3688',
@@ -1421,7 +1431,7 @@ async function parseRcloneSections(newCfg = false) {
 
   try {
     const rcloneCmd = global.currentConfiguration.rclonePath;
-    const out = await execShellCommand(`"${rcloneCmd}" --config="${global.currentConfiguration.rcloneConf}" config list`);
+    const out = await execShellCommand(`"${rcloneCmd}" --config="${global.currentConfiguration.rcloneConf}" config show`);
     if (!out) {
       return console.error('rclone config is empty', global.currentConfiguration.rcloneConf, out);
     }
@@ -1635,7 +1645,44 @@ async function getDir(folder) {
         size = false,
         newItem = false;
 
-      const gameMeta = gameList[fileName];
+      let isGameFolder = false;
+
+      if (info.isDirectory()) {
+        const dirCont = await fsp.readdir(path.join(folder, fileName));
+
+        isGameFolder =
+            dirCont.filter((file) => {
+              return /.*\.apk/.test(file);
+            }).length > 0;
+      }
+
+      let gameMeta = false;
+
+      if (isGameFolder) {
+        gameMeta = gameList[fileName];
+
+        if (!gameMeta) {
+          // If gameMeta is still not defined then there is no game with a
+          // matching version number. We now query gameList using the game name
+          // without the version number.
+          let regex = /^([\w -.,!?&+™®'"]+) v\d+\+/;
+          if (regex.test(fileName)) {
+            // Only do this if this is a folder containing an apk file.
+            if (info.isDirectory()) {
+              const dirCont = await fsp.readdir(path.join(folder, fileName));
+              const isGameFolder =
+                  dirCont.filter((file) => {
+                    return /.*\.apk/.test(file);
+                  }).length > 0;
+
+              if (isGameFolder) {
+                const match = fileName.match(regex)[1];
+                gameMeta = gameList[match];
+              }
+            }
+          }
+        }
+      }
 
       if (gameMeta) {
         simpleName = gameMeta.simpleName;
@@ -1644,15 +1691,29 @@ async function getDir(folder) {
         versionName = gameMeta.versionName;
         simpleName = gameMeta.simpleName;
         size = gameMeta.size;
-        // imagePath = gameMeta.imagePath;
+        imagePath = gameMeta.imagePath;
 
-        if (gameMeta.releaseName.includes('(')) {
-          note = gameMeta.releaseName.match(/\((.*?)\)/);
-          note = note[0].replace(', only autoinstalls with Rookie', '');
+        let regex = /\((.*?)\)/;
+        if (regex.test(gameMeta.releaseName)) {
+          const match = gameMeta.releaseName.match(regex)[0];
+          note += match.replace(", only autoinstalls with Rookie", "");
         }
       }
 
-      let regex = /^([\w -.,!?&+™®'"]*) v\d+\+/;
+      // Include local notes. This allows users to add notes in brackets to
+      // their filenames to override the original note. These notes are rendered
+      // in the game's browse card.
+      let regex = /\((.*?)\)/;
+      if (regex.test(fileName)) {
+        const match = fileName.match(/\((.*?)\)/)[0];
+        if (match !== note) {
+          // This note differs from the original so it has been overriden in the
+          // filename, so we replace it.
+          note = match.replace(", only autoinstalls with Rookie", "");
+        }
+      }
+
+      regex = /^([\w -.,!?&+™®'"]+) v\d+\+/;
       if (gameListName && !packageName && regex.test(fileName)) {
         simpleName = fileName.match(regex)[1];
         packageName = KMETAS2[escString(simpleName)];
@@ -1683,11 +1744,12 @@ async function getDir(folder) {
 
 
       if (packageName) {
-        if (QUEST_ICONS.includes(packageName + '.jpg')) {
-          imagePath = `https://raw.githubusercontent.com/vKolerts/quest_icons/master/250/${packageName}.jpg`;
-        }
-        else if (!imagePath) {
-          imagePath = 'unknown.png';
+        if (!imagePath) {
+          if (QUEST_ICONS.includes(packageName + '.jpg')) {
+            imagePath = `https://raw.githubusercontent.com/vKolerts/quest_icons/master/250/${packageName}.jpg`;
+          } else if (!imagePath) {
+            imagePath = 'unknown.png';
+          }
         }
 
         kmeta = KMETAS[packageName];
@@ -1709,7 +1771,7 @@ async function getDir(folder) {
         steamId = !!(kmeta.steam && kmeta.steam.id);
         oculusId = !!(kmeta.oculus && kmeta.oculus.id);
         sqId = !!(kmeta.sq && kmeta.sq.id);
-        simpleName = kmeta.simpleName || simpleName;
+        simpleName = simpleName || kmeta.simpleName;
         mp = kmeta.mp || !!kmeta.mp;
       }
       else {
@@ -1744,9 +1806,31 @@ async function getDir(folder) {
     }));
     // console.log({ fileNames });
 
-    fileNames.sort((a, b) => {
-      return b.createdAt - a.createdAt;
-    });
+    const sortFileMode = global.currentConfiguration.sortFiles || "name";
+    const sortByName = sortFileMode.startsWith("name");
+    const asc = !sortFileMode.endsWith("-desc");
+    fileNames
+        .sort((a, b) => {
+          const valA = sortByName ? a.simpleName.toLowerCase() : a.info.mtimeMs;
+          const valB = sortByName ? b.simpleName.toLowerCase() : b.info.mtimeMs;
+
+          if (valA < valB) {
+            return asc ? -1 : 1;
+          }
+          if (valA > valB) {
+            return asc ? 1 : -1;
+          }
+          return 0;
+        })
+        .sort((a, b) => {
+          if (a.isFile && !b.isFile) {
+            return 1;
+          }
+          if (!a.isFile && b.isFile) {
+            return -1;
+          }
+          return 0;
+        });
     // console.log(fileNames)
 
     if (
@@ -1787,15 +1871,16 @@ async function getDirListing(folder){
 }
 
 
-async function backupApp({ location, package }) {
-  console.log('backupApp()', package, location);
-  let apk = await adbShell(`pm list packages -f ${package}`);
-  apk = apk.replace('package:', '').replace(`=${package}`, '');
+async function backupApp({ location, pkg }) {
+  console.log('backupApp()', pkg, location);
+  let apk = await adbShell(`pm path ${pkg}`);
+  apk = apk.replace("package:", "");
 
-  folderName = package;
+  let folderName = pkg;
+
   for (const app of global.installedApps) {
-    if (app['packageName'] != package) continue;
-    folderName = `${app['simpleName']} -versionCode-${app['versionCode']} -packageName-${package}`;
+    if (app['packageName'] != pkg) continue;
+    folderName = `${app['simpleName']} -versionCode-${app['versionCode']} -packageName-${pkg}`;
     break;
   }
 
@@ -1804,10 +1889,10 @@ async function backupApp({ location, package }) {
 
   await fsp.mkdir(location, { recursive: true });
   await adbPull(apk, path.join(location, 'base.apk'));
-  const obbsPath = `/sdcard/Android/obb/${package}`;
+  const obbsPath = `/sdcard/Android/obb/${pkg}`;
   if (!(await adbFileExists(obbsPath))) return true;
 
-  await adbPullFolder(obbsPath, path.join(location, package));
+  await adbPullFolder(obbsPath, path.join(location, pkg));
 
   return true;
 }
@@ -2094,12 +2179,13 @@ async function sideloadFolder(arg) {
     console.log('doing obb rm');
     try {
       await adbShell(`rm -r "${obbFolderDest}"`);
+      await adbShell(`mkdir -p ${obbFolderDest}`, global.adbDevice, true)
       res.remove_obb = 'done';
       console.log('remove_obb done', packageName);
     }
     catch (e) {
       res.remove_obb = 'skip';
-      //console.log(e);
+      console.log(e);
     }
 
     res.download_obb = 'processing';
@@ -2140,11 +2226,11 @@ async function sideloadFolder(arg) {
 
           res.download_obb = (+res.download_obb.split('/')[0] + 1) + '/' + obbFiles.length;
           win.webContents.send('sideload_process', res);
-
-          await adbPush(obbtmp, `${destFile}`);
+          await adbPush(obbtmp, `${destFile}`, false);
         }
         else {
-          await adbPush(obb, `${destFile}`);
+          await adbShell(`mkdir -p ${obbFolderDest}`, global.adbDevice, true)
+          await adbPush(obb, `${destFile}`, false);
         }
 
         res.push_obb = (+res.push_obb.split('/')[0] + 1) + '/' + obbFiles.length;
@@ -2153,7 +2239,7 @@ async function sideloadFolder(arg) {
 
       if (fromremote) {
         //TODO: check settings
-        await fsp.rmdir(tmpFolder, { recursive: true });
+        await fsp.rm(tmpFolder, { recursive: true });
       }
     }
     catch (e) {
@@ -2217,7 +2303,20 @@ async function getInstalledApps(obj = false) {
   }
 
 
-  global.installedApps = Object.values(appinfo);
+  const sortAppMode = global.currentConfiguration.sortApps || "simplename";
+  const sortByName = sortAppMode.startsWith("simplename");
+  const asc = !sortAppMode.endsWith("-desc");
+  global.installedApps = Object.values(appinfo).sort((a, b) => {
+    const valA = (sortByName ? a.simpleName : a.packageName).toLowerCase();
+    const valB = (sortByName ? b.simpleName : b.packageName).toLowerCase();
+    if (valA < valB) {
+      return asc ? -1 : 1;
+    }
+    if (valA > valB) {
+      return asc ? 1 : -1;
+    }
+    return 0;
+  });
 
   return obj ? appinfo : global.installedApps;
 }
@@ -2254,19 +2353,19 @@ async function getInstalledAppsWithUpdates() {
     if (!remoteKeys.includes(packageName)) continue;
 
     for (name of remotePackages[packageName]) {
-      const package = remoteList[name];
+      const pkg = remoteList[name];
       const installedVersion = app['versionCode'];
-      const remoteversion = package.versionCode;
+      const remoteversion = pkg.versionCode;
 
       // console.log({ packageName, installedVersion, remoteversion });
       // console.log({ package });
 
       if (remoteversion <= installedVersion) continue;
 
-      app['simpleName'] = package.simpleName;
+      app['simpleName'] = pkg.simpleName;
       app['update'] = [];
-      app['update']['path'] = package.filePath;
-      app['update']['size'] = package.size;
+      app['update']['path'] = pkg.filePath;
+      app['update']['size'] = pkg.size;
       app['update']['versionCode'] = remoteversion;
       updates.push(app);
 
@@ -2420,8 +2519,8 @@ async function loadMeta() {
     const decipher = crypto.createDecipheriv('aes-256-cbc', secret, iv);
     const encrypted = text.substring(l);
     KMETAS = JSON.parse(decipher.update(encrypted, 'base64', 'utf8') + decipher.final('utf8'));
-    for (const package of Object.keys(KMETAS)) {
-      KMETAS2[escString(KMETAS[package].simpleName)] = package;
+    for (const pkg of Object.keys(KMETAS)) {
+      KMETAS2[escString(KMETAS[pkg].simpleName)] = pkg;
     }
 
     console.log('kmetas loaded');
@@ -2516,12 +2615,12 @@ async function reloadConfig() {
   const defaultConfig = {
     allowOtherDevices: false,
     cacheOculusGames: true,
-    autoMount: true,
+    autoMount: false,
     adbPath: '',
     rclonePath: '',
     rcloneConf: '',
     mountCmd: 'mount',
-    cfgSection: 'VRP-mirror13',
+    cfgSection: '',
     snapshotsDelete: true,
     mntGamePath: 'Quest Games',
     scrcpyBitrate: '5',

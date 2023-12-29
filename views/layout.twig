@@ -155,7 +155,6 @@
   <hr>
   <a class="btn btn-sm" onclick="shell.openPath(remote.getGlobal('sidenoderHome') + '/debug_last.log')"><i class="fa fa-file-code-o"></i> log</a>
   <b>SideNoder v{{ version }}</b>
-  <a class="btn btn-sm btn-info" onclick="loadInclude('modals/donate.twig', 'donatemodaldiv')"><i class="fa fa-usd"></i> Donate</a>
   <br>
   https://github.com/vKolerts/sidenoder
 </footer>
@@ -172,7 +171,6 @@
 <div id="apptoolsmodaldiv"></div>
 <div id="scrcpymodaldiv"></div>
 <div id="processingmodaldiv"></div>
-<div id="donatemodaldiv"></div>
 <div id="promptmodaldiv"></div>
 
 <a class="btn btn-dark btn-floating btn-lg" id="backToTop" onclick="backToTop()"><i class="fa fa-angle-up"></i></a>
@@ -190,17 +188,6 @@
   /*loadInclude('modals/sideload-queue.twig', 'sideload-queuediv', () => {
     ipcRenderer.send('sideload_read_queue', '');
   });*/
-
-  const donShown = Date.now() - (remote.getGlobal('currentConfiguration').donShown || 0);
-  console.log(
-    // Date.now(),
-    // remote.getGlobal('currentConfiguration').donShown,
-    // 1000 * 5 * 24 * 3600,
-    donShown
-  );
-  if (donShown > 1000 * 5 * 24 * 3600 || donShown < 0) {
-    setTimeout(()=>loadInclude('modals/donate.twig', 'donatemodaldiv'), 2000 * 60);
-  }
 
 
   document.ondragover = document.ondrop = (ev) => {
